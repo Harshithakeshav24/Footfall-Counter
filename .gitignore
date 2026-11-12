@@ -1,0 +1,17 @@
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# runtime files
+data/
+*.db
+
+# model weights are downloaded automatically
+*.pt
+
+# editor
+.vscode/
+.idea/
