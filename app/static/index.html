@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Footfall Counter</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+      margin: 0;
+      padding: 20px;
+      color: #222;
+    }
+    h1 {
+      margin-top: 0;
+      font-size: 24px;
+    }
+    .container {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .video img {
+      max-width: 100%;
+      border: 1px solid #ccc;
+      background: #000;
+    }
+    .panel {
+      background: #fff;
+      border: 1px solid #ddd;
+      padding: 16px 24px;
+      min-width: 220px;
+    }
+    .count {
+      font-size: 48px;
+      font-weight: bold;
+      margin: 4px 0 12px;
+    }
+    .row {
+      margin: 6px 0;
+    }
+    .small {
+      color: #666;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Footfall Counter</h1>
+
+  <div class="container">
+    <div class="video">
+      <img id="video" alt="Waiting for the first frame...">
+    </div>
+
+    <div class="panel">
+      <div>Total count</div>
+      <div class="count" id="total">0</div>
+      <div class="row">In: <b id="entered">0</b></div>
+      <div class="row">Out: <b id="exited">0</b></div>
+      <hr>
+      <div class="small">Status: <span id="status">-</span></div>
+      <div class="small">Frames processed: <span id="frames">0</span></div>
+      <p class="small">
+        JSON: <a href="/footfall" target="_blank">/footfall</a><br>
+        API docs: <a href="/docs" target="_blank">/docs</a>
+      </p>
+    </div>
+  </div>
+
+  <script>
+    const video = document.getElementById("video");
+    let processing = true;
+
+    // keep loading the latest frame while the video is being processed
+    function loadFrame() {
+      video.src = "/frame?t=" + Date.now();  // t stops the browser from using a cached image
+    }
+    video.onload = () => {
+      if (processing) setTimeout(loadFrame, 40);
+    };
+    video.onerror = () => setTimeout(loadFrame, 1000);  // no frame yet, try again
+
+    // ask the API for the latest numbers every second
+    async function refresh() {
+      try {
+        const counts = await (await fetch("/footfall")).json();
+        document.getElementById("total").textContent = counts.total_count;
+        document.getElementById("entered").textContent = counts.entered;
+        document.getElementById("exited").textContent = counts.exited;
+
+        const status = await (await fetch("/status")).json();
+        document.getElementById("status").textContent = status.status;
+        document.getElementById("frames").textContent = status.frames_processed;
+
+        const stillRunning = ["not started", "loading model", "running"].includes(status.status);
+        if (processing && !stillRunning) {
+          processing = false;
+          loadFrame();  // show the very last frame
+        }
+      } catch (err) {
+        console.log("Could not reach the API", err);
+      }
+    }
+
+    loadFrame();
+    refresh();
+    setInterval(refresh, 1000);
+  </script>
+</body>
+</html>
